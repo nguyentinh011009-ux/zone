@@ -218,18 +218,18 @@
                         <input type="text" id="yt-note" placeholder="Thông tin ghi chú lâm sàng khác...">
                     </div>
 
-                    <div class="form-group">
-                        <label>Ký xác nhận (Ký trực tiếp trên màn hình)</label>
-                        <div class="signature-container">
-                            <canvas id="signature-pad"></canvas>
-                            <button type="button" class="btn-clear-sig" onclick="clearSignature()"><i class="fas fa-eraser"></i> Xóa ký lại</button>
-                        </div>
-                    </div>
+                    <!-- Khung ký trực tiếp được đưa lại vào trong thẻ tab chính -->
+<div class="form-group" style="margin-top: 20px;">
+    <label>Chữ ký xác nhận học sinh (Ký trực tiếp bên dưới)</label>
+    <div class="signature-container" style="height: 160px; background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; position: relative;">
+        <canvas id="signature-pad"></canvas>
+        <button type="button" class="btn-clear-sig" onclick="clearSignature()"><i class="fas fa-eraser"></i> Xóa ký lại</button>
+    </div>
+</div>
 
-                    <button onclick="openSignatureModal()" class="btn btn-success" style="width: 100%; margin-top: 15px;">
-                    <i class="fas fa-pen-nib"></i> Tiến hành ký tên & Xác nhận
-                    </button>
-                </div>
+<button onclick="saveReception()" class="btn btn-success" style="width: 100%; margin-top: 15px;">
+    <i class="fas fa-check-circle"></i> Hoàn thành tiếp nhận
+</button>
             </section>
 
             <!-- TAB 2: THÔNG TIN CHI TIẾT -->
@@ -374,25 +374,5 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="config.js"></script>
     <script src="mobile_admin.js"></script>
-    <!-- MỚI: Pop-up ký tên nâng cấp trực quan -->
-<div id="signature-modal" class="modal">
-    <div class="modal-content" style="max-width: 90%; width: 500px; padding: 25px;">
-        <button class="btn-close-modal" onclick="closeSignatureModal()">&times;</button>
-        <h3 style="margin-bottom: 10px; color: var(--text-main);"><i class="fas fa-file-signature"></i> Chữ ký học sinh</h3>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Vui lòng ký xác nhận trực tiếp vào khung trắng dưới đây</p>
-        
-        <div class="signature-container" style="height: 250px; background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; position: relative;">
-            <canvas id="signature-pad"></canvas>
-            <button type="button" class="btn-clear-sig" onclick="clearSignature()"><i class="fas fa-eraser"></i> Xóa ký lại</button>
-        </div>
-        
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="closeSignatureModal()" class="btn btn-secondary" style="flex: 1;">Hủy bỏ</button>
-            <button onclick="confirmSignatureAndSave()" class="btn btn-success" style="flex: 1;">
-                <i class="fas fa-check"></i> Xác nhận & Lưu hồ sơ
-            </button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
