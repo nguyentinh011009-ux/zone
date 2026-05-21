@@ -195,38 +195,87 @@ function updateDots(dotsId, length) {
 }
 
 // Vân tay sinh trắc học (Simulation WebAuthn/Biometric API bảo mật cục bộ)
-function enableBiometric(agree) {
+// Thay thế hàm enableBiometric cũ để hệ thống thực hiện đăng ký tạo khóa gốc
+async function enableBiometric(agree) {
     if (agree) {
-        localStorage.setItem('vts_mobile_biometric', 'true');
-        alert("Đã kích hoạt bảo mật vân tay cho thiết bị này!");
+        if (!window.PublicKeyCredential) {
+            alert("Thiết bị hoặc trình duyệt không hỗ trợ bảo mật chuẩn WebAuthn!");
+            enterSystem();
+            return;
+        }
+
+        const options = {
+            publicKey: {
+                challenge: new Uint8Array([1, 9, 0, 9, 2, 0, 0, 5]),
+                rp: { name: "Hệ thống Y Tế Số VTS" },
+                user: { id: new Uint8Array([1]), name: "admin", displayName: "Admin VTS" },
+                pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform", // Ép buộc sử dụng TouchID/FaceID hoặc Vân tay của thiết bị
+                    userVerification: "required"
+                }
+            }
+        };
+
+        try {
+            // Thực hiện tạo khóa truy cập gốc trên thiết bị (Chỉ xuất hiện bảng thông báo tạo 1 lần này)
+            const credential = await navigator.credentials.create(options);
+            if (credential) {
+                // Mã hóa ID của khóa vừa tạo và lưu lại vào bộ nhớ thiết bị
+                const rawId = new Uint8Array(credential.rawId);
+                const base64Id = btoa(String.fromCharCode.apply(null, rawId));
+                
+                localStorage.setItem('vts_biometric_cred_id', base64Id);
+                localStorage.setItem('vts_mobile_biometric', 'true');
+                alert("✅ Kích hoạt xác thực sinh trắc học thành công!");
+            }
+        } catch (err) {
+            console.error("Lỗi đăng ký sinh trắc học thiết bị:", err);
+            localStorage.setItem('vts_mobile_biometric', 'false');
+            alert("Không thể thiết lập khóa truy cập gốc. Bạn vẫn có thể sử dụng mã PIN để đăng nhập bình thường.");
+        }
     } else {
         localStorage.setItem('vts_mobile_biometric', 'false');
     }
     enterSystem();
 }
 
+// Thay thế hàm triggerBiometricAuth cũ để hệ thống chỉ gọi xác thực quét Vân tay/FaceID khớp với khóa cũ
 async function triggerBiometricAuth() {
-    if (!window.PublicKeyCredential) {
-        alert("Thiết bị hoặc trình duyệt của bạn không hỗ trợ công nghệ xác thực sinh trắc học!");
+    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        showAuthStep('step-login');
         return;
     }
 
-    // Thiết lập tùy chọn yêu cầu sinh trắc học cục bộ của trình duyệt di động
-    const options = {
-        challenge: new Uint8Array([1, 9, 0, 9, 2, 0, 0, 5]), // Giá trị ngẫu nhiên xác thực
-        rp: { name: "Hệ thống Y Tế Số VTS" },
-        user: { id: new Uint8Array([1]), name: "admin", displayName: "Quản trị viên" },
-        pubKeyCredParams: [{ type: "public-key", alg: -7 }] // Thuật toán mã hóa chuẩn bảo mật gốc
-    };
+    const credentialId = localStorage.getItem('vts_biometric_cred_id');
+    if (!credentialId || !window.PublicKeyCredential) {
+        showAuthStep('step-login');
+        return;
+    }
 
     try {
-        // Gọi API gốc kích hoạt FaceID trên iOS hoặc Vân tay trên Android
-        const credential = await navigator.credentials.create({ publicKey: options });
-        if (credential) {
+        // Giải mã ID khóa đã được thiết lập trước đó trên thiết bị
+        const rawId = Uint8Array.from(atob(credentialId), c => c.charCodeAt(0));
+
+        const options = {
+            publicKey: {
+                challenge: new Uint8Array([1, 9, 0, 9, 2, 0, 0, 5]),
+                allowCredentials: [{
+                    id: rawId,
+                    type: "public-key"
+                }],
+                userVerification: "required"
+            }
+        };
+
+        // Gọi quét Vân tay/FaceID để so khớp với khóa đã lưu (Không yêu cầu tạo mới)
+        const assertion = await navigator.credentials.get(options);
+        if (assertion) {
             enterSystem();
         }
     } catch (err) {
-        console.warn("Huỷ xác thực sinh trắc học, chuyển sang sử dụng mã PIN thiết bị.", err);
+        console.warn("Xác thực quét vân tay/FaceID thất bại hoặc bị hủy:", err);
+        showAuthStep('step-login'); // Chuyển về màn hình nhập PIN nếu quét thất bại hoặc hủy quét
     }
 }
 
