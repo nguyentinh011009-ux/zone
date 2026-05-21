@@ -284,70 +284,95 @@ async function searchStudent() {
 }
 
 // Tải thông tin học sinh vào màn tác vụ
+// Thay thế hàm loadStudentToTask trong file mobile_admin.js của bạn:
 async function loadStudentToTask(studentId) {
     try {
         const doc = await db.collection('yt_students').doc(studentId).get();
         if (doc.exists) {
             activeStudentData = { id: doc.id, ...doc.data() };
             
-// Đoạn gán dữ liệu trong hàm loadStudentToTask(studentId)
-document.getElementById('rec-id').innerText = activeStudentData.id;
-document.getElementById('rec-code').innerText = activeStudentData.studentCode || 'Chưa cập nhật';
-document.getElementById('rec-gender').innerText = activeStudentData.gender || 'Chưa rõ';
-document.getElementById('rec-dob').innerText = activeStudentData.dob ? new Date(activeStudentData.dob).toLocaleDateString('vi-VN') : 'Chưa cập nhật';
-document.getElementById('rec-phone').innerText = activeStudentData.phone || 'Chưa cập nhật';
-document.getElementById('rec-parent-phone').innerText = activeStudentData.parentPhone || 'Chưa cập nhật';
-document.getElementById('rec-address').innerText = activeStudentData.street ? `${activeStudentData.street}, ${activeStudentData.ward || ''}, ${activeStudentData.city || ''}` : 'Chưa cập nhật';
-document.getElementById('rec-height').innerText = activeStudentData.height ? `${activeStudentData.height} cm` : 'Chưa cập nhật';
-document.getElementById('rec-weight').innerText = activeStudentData.weight ? `${activeStudentData.weight} kg` : 'Chưa cập nhật';
-document.getElementById('rec-email').innerText = activeStudentData.linkedEmail || 'Chưa liên kết app';
-
-// Tính toán BMI tự động
-if (activeStudentData.height && activeStudentData.weight) {
-    const h = parseFloat(activeStudentData.height) / 100;
-    const w = parseFloat(activeStudentData.weight);
-    const bmi = (w / (h * h)).toFixed(1);
-    document.getElementById('rec-bmi').innerText = bmi;
-} else {
-    document.getElementById('rec-bmi').innerText = 'Chưa tính';
-}
-            
-            const warningAlert = document.getElementById('rec-warning');
-            if (activeStudentData.medicalNote) {
-                warningAlert.innerText = `Cảnh báo dị ứng/Bệnh lý: ${activeStudentData.medicalNote}`;
-                warningAlert.style.display = 'block';
-            } else {
-                warningAlert.style.display = 'none';
+            // ĐƯA LÊN ĐẦU: Gán dữ liệu cho Header ngay lập tức để tránh lỗi ngắt luồng
+            if (document.getElementById('active-student-name')) {
+                document.getElementById('active-student-name').innerText = activeStudentData.name || 'Không rõ';
+            }
+            if (document.getElementById('active-student-class')) {
+                document.getElementById('active-student-class').innerText = "Lớp: " + (activeStudentData.class || 'N/A');
             }
 
-// Gán thông tin đầy đủ vào Tab 2 (Chỉnh sửa)
-document.getElementById('edit-student-id').value = activeStudentData.id;
-document.getElementById('edit-student-code').value = activeStudentData.studentCode || '';
-document.getElementById('edit-student-name').value = activeStudentData.name || '';
-document.getElementById('edit-student-class').value = activeStudentData.class || '';
-document.getElementById('edit-student-dob').value = activeStudentData.dob || '';
-document.getElementById('edit-student-gender').value = activeStudentData.gender || 'Nam';
-document.getElementById('edit-student-phone').value = activeStudentData.phone || '';
-document.getElementById('edit-student-parent-phone').value = activeStudentData.parentPhone || '';
-document.getElementById('edit-student-street').value = activeStudentData.street || '';
-document.getElementById('edit-student-ward').value = activeStudentData.ward || '';
-document.getElementById('edit-student-city').value = activeStudentData.city || 'Thành phố Hồ Chí Minh';
-document.getElementById('edit-student-height').value = activeStudentData.height || '';
-document.getElementById('edit-student-weight').value = activeStudentData.weight || '';
-document.getElementById('edit-student-email').value = activeStudentData.linkedEmail || '';
-document.getElementById('edit-student-medical-note').value = activeStudentData.medicalNote || '';
+            // Gán dữ liệu cho Tab 1: Tiếp nhận (Bọc try-catch nhỏ tránh lỗi dữ liệu trống)
+            try {
+                if (document.getElementById('rec-id')) document.getElementById('rec-id').innerText = activeStudentData.id;
+                if (document.getElementById('rec-code')) document.getElementById('rec-code').innerText = activeStudentData.studentCode || 'Không có';
+                if (document.getElementById('rec-gender')) document.getElementById('rec-gender').innerText = activeStudentData.gender || 'Chưa rõ';
+                
+                if (document.getElementById('rec-dob')) {
+                    document.getElementById('rec-dob').innerText = activeStudentData.dob ? new Date(activeStudentData.dob).toLocaleDateString('vi-VN') : 'Chưa cập nhật';
+                }
+                if (document.getElementById('rec-phone')) document.getElementById('rec-phone').innerText = activeStudentData.phone || 'Chưa cập nhật';
+                if (document.getElementById('rec-parent-phone')) document.getElementById('rec-parent-phone').innerText = activeStudentData.parentPhone || 'Chưa cập nhật';
+                if (document.getElementById('rec-address')) {
+                    document.getElementById('rec-address').innerText = activeStudentData.street ? `${activeStudentData.street}, ${activeStudentData.ward || ''}, ${activeStudentData.city || ''}` : 'Chưa cập nhật';
+                }
+                if (document.getElementById('rec-height')) document.getElementById('rec-height').innerText = activeStudentData.height ? `${activeStudentData.height} cm` : 'Chưa cập nhật';
+                if (document.getElementById('rec-weight')) document.getElementById('rec-weight').innerText = activeStudentData.weight ? `${activeStudentData.weight} kg` : 'Chưa cập nhật';
+                if (document.getElementById('rec-email')) document.getElementById('rec-email').innerText = activeStudentData.linkedEmail || 'Chưa liên kết app';
+
+                // Tính toán BMI tự động
+                if (document.getElementById('rec-bmi')) {
+                    if (activeStudentData.height && activeStudentData.weight) {
+                        const h = parseFloat(activeStudentData.height) / 100;
+                        const w = parseFloat(activeStudentData.weight);
+                        const bmi = (w / (h * h)).toFixed(1);
+                        document.getElementById('rec-bmi').innerText = bmi;
+                    } else {
+                        document.getElementById('rec-bmi').innerText = 'Chưa tính';
+                    }
+                }
+            } catch (err) {
+                console.warn("Lỗi gán dữ liệu hành chính: ", err);
+            }
+            
+            const warningAlert = document.getElementById('rec-warning');
+            if (warningAlert) {
+                if (activeStudentData.medicalNote) {
+                    warningAlert.innerText = `Cảnh báo dị ứng/Bệnh lý: ${activeStudentData.medicalNote}`;
+                    warningAlert.style.display = 'block';
+                } else {
+                    warningAlert.style.display = 'none';
+                }
+            }
+
+            // Gán dữ liệu cho Tab 2 (Bọc an toàn)
+            try {
+                if (document.getElementById('edit-student-id')) document.getElementById('edit-student-id').value = activeStudentData.id;
+                if (document.getElementById('edit-student-code')) document.getElementById('edit-student-code').value = activeStudentData.studentCode || '';
+                if (document.getElementById('edit-student-name')) document.getElementById('edit-student-name').value = activeStudentData.name || '';
+                if (document.getElementById('edit-student-class')) document.getElementById('edit-student-class').value = activeStudentData.class || '';
+                if (document.getElementById('edit-student-dob')) document.getElementById('edit-student-dob').value = activeStudentData.dob || '';
+                if (document.getElementById('edit-student-gender')) document.getElementById('edit-student-gender').value = activeStudentData.gender || 'Nam';
+                if (document.getElementById('edit-student-phone')) document.getElementById('edit-student-phone').value = activeStudentData.phone || '';
+                if (document.getElementById('edit-student-parent-phone')) document.getElementById('edit-student-parent-phone').value = activeStudentData.parentPhone || '';
+                if (document.getElementById('edit-student-street')) document.getElementById('edit-student-street').value = activeStudentData.street || '';
+                if (document.getElementById('edit-student-ward')) document.getElementById('edit-student-ward').value = activeStudentData.ward || '';
+                if (document.getElementById('edit-student-city')) document.getElementById('edit-student-city').value = activeStudentData.city || 'Thành phố Hồ Chí Minh';
+                if (document.getElementById('edit-student-height')) document.getElementById('edit-student-height').value = activeStudentData.height || '';
+                if (document.getElementById('edit-student-weight')) document.getElementById('edit-student-weight').value = activeStudentData.weight || '';
+                if (document.getElementById('edit-student-email')) document.getElementById('edit-student-email').value = activeStudentData.linkedEmail || '';
+                if (document.getElementById('edit-student-medical-note')) document.getElementById('edit-student-medical-note').value = activeStudentData.medicalNote || '';
+            } catch (err) {
+                console.warn("Lỗi gán dữ liệu Tab 2: ", err);
+            }
 
             // Tải Tab 3: Lịch sử khám
             loadStudentHistory(studentId);
 
-            // Chuyển màn hình
+            // Chuyển màn hình tác vụ
             document.getElementById('search-screen').style.display = 'none';
             document.getElementById('task-screen').style.display = 'block';
             
-            // Mặc định kích hoạt tab Tiếp nhận ở giữa
+            // Kích hoạt tab Tiếp nhận mặc định
             switchTaskTab('pane-reception', document.querySelector('.bottom-nav-bar button.center-btn'));
-            setTimeout(initSignaturePad, 500); // Khởi tạo canvas ký
-
+            setTimeout(initSignaturePad, 500); 
         }
     } catch (e) {
         alert("Lỗi tải hồ sơ học sinh: " + e.message);
@@ -921,26 +946,3 @@ enterSystem = function() {
     sessionStorage.removeItem('vts_mobile_session_locked');
     originalEnterSystem();
 };
-// Điều khiển Pop-up ký tên
-function openSignatureModal() {
-    const symptom = document.getElementById('yt-symptom').value.trim();
-    const treatment = document.getElementById('yt-treatment').value.trim();
-    
-    if (!symptom || !treatment) {
-        alert("Vui lòng nhập đầy đủ Triệu chứng và Hướng xử lý của học sinh trước khi tiến hành ký tên!");
-        return;
-    }
-    
-    document.getElementById('signature-modal').classList.add('active');
-    setTimeout(initSignaturePad, 300); // Trì hoãn khởi tạo để canvas nhận diện đúng chiều rộng modal
-}
-
-function closeSignatureModal() {
-    document.getElementById('signature-modal').classList.remove('active');
-}
-
-function confirmSignatureAndSave() {
-    // Tắt modal trước khi thực thi tiến trình lưu nền của Firebase
-    closeSignatureModal();
-    saveReception(); // Gọi hàm lưu trữ gốc
-}
