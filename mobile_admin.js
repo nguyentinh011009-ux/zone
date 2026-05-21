@@ -32,13 +32,18 @@ window.addEventListener('DOMContentLoaded', () => {
 // --- 3. QUẢN LÝ ĐĂNG KÝ & BẢO MẬT THIẾT BỊ ---
 function checkDeviceRegistration() {
     const isRegistered = localStorage.getItem('vts_mobile_registered');
+    
     if (isRegistered === 'true') {
+        // THIẾT BỊ ĐÃ ĐĂNG KÝ: Yêu cầu mở khóa bằng Vân tay/FaceID hoặc mã PIN cũ
         showAuthStep('step-login');
+        
+        // Tự động gọi xác thực Vân tay/Face ID ngay lập tức nếu thiết bị đã bật
         if (localStorage.getItem('vts_mobile_biometric') === 'true') {
             document.getElementById('btn-bio-trigger').style.display = 'block';
-            triggerBiometricAuth();
+            setTimeout(triggerBiometricAuth, 500); 
         }
     } else {
+        // THIẾT BỊ MỚI: Bắt đầu luồng đăng ký 1 lần duy nhất
         showAuthStep('step-google-login');
     }
 }
@@ -87,23 +92,39 @@ function initPasscodeKeyboards() {
 }
 
 // Google Login
+// Cập nhật hàm xác thực Google trong file mobile_admin.js
 function handleGoogleAuth() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider).then((result) => {
-        const ALLOWED_EMAILS = [
-            "nguyentinh011009@gmail.com", "tomizy09icloud@gmail.com",
-            "nguyenthixuandongvts@gmail.com", "yte.thptvothisaubrvt@gmail.com", "nguyentinh52009@gmail.com"
-        ];
-        if (ALLOWED_EMAILS.includes(result.user.email)) {
-            currentAdminUser = result.user;
-            showAuthStep('step-set-passcode');
-        } else {
-            alert("Tài khoản của bạn không được cấp quyền quản trị!");
-            firebase.auth().signOut();
-        }
-    }).catch(err => {
-        alert("Lỗi xác thực Google: " + err.message);
-    });
+    
+    // Đặt cấu hình persistence để Firebase nhớ tài khoản vô hạn trên thiết bị di động
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .then(() => {
+            return firebase.auth().signInWithPopup(provider);
+        })
+        .then((result) => {
+            const ALLOWED_EMAILS = [
+                "nguyentinh011009@gmail.com", "tomizy09icloud@gmail.com",
+                "nguyenthixuandongvts@gmail.com", "yte.thptvothisaubrvt@gmail.com", "nguyentinh52009@gmail.com"
+            ];
+            
+            if (ALLOWED_EMAILS.includes(result.user.email)) {
+                currentAdminUser = result.user;
+                // Nhớ tên và avatar lên local storage
+                localStorage.setItem('vts_cached_admin_name', result.user.displayName || result.user.email.split('@')[0]);
+                if (result.user.photoURL) {
+                    localStorage.setItem('vts_cached_admin_avatar', result.user.photoURL);
+                }
+                
+                // Chuyển sang bước tạo mã khóa mới (Chỉ tạo duy nhất một lần này)
+                showAuthStep('step-set-passcode');
+            } else {
+                alert("Tài khoản của bạn không được phân quyền quản trị!");
+                firebase.auth().signOut();
+            }
+        })
+        .catch(err => {
+            alert("Lỗi xác thực Google: " + err.message);
+        });
 }
 
 // PIN Setup
@@ -213,11 +234,25 @@ function enterSystem() {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('search-screen').style.display = 'block';
     
-    // Gán dữ liệu lên header
+    // Tự động khôi phục dữ liệu Admin hiển thị trên Header (Dùng session lưu trữ)
+    const cachedAdminName = localStorage.getItem('vts_cached_admin_name') || 'Quản trị viên';
+    const cachedAdminAvatar = localStorage.getItem('vts_cached_admin_avatar') || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+    
+    document.getElementById('admin-display-name').innerText = cachedAdminName;
+    document.getElementById('admin-avatar').src = cachedAdminAvatar;
+
+    // Đọc trạng thái tài khoản từ Firebase để cập nhật thông tin mới nhất
     firebase.auth().onAuthStateChanged(user => {
         if (user) {
-            document.getElementById('admin-display-name').innerText = user.displayName || user.email.split('@')[0];
-            if (user.photoURL) document.getElementById('admin-avatar').src = user.photoURL;
+            const adminName = user.displayName || user.email.split('@')[0];
+            const adminAvatar = user.photoURL || cachedAdminAvatar;
+            
+            document.getElementById('admin-display-name').innerText = adminName;
+            document.getElementById('admin-avatar').src = adminAvatar;
+            
+            // Lưu đệm lại để mở khóa nhanh không cần chờ mạng tải profile
+            localStorage.setItem('vts_cached_admin_name', adminName);
+            localStorage.setItem('vts_cached_admin_avatar', adminAvatar);
         }
     });
 
