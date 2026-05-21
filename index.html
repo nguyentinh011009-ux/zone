@@ -156,16 +156,24 @@
         <main class="main-content" style="padding-bottom: 80px;">
             <!-- TAB 1: TIẾP NHẬN -->
             <section id="pane-reception" class="tab-pane active">
-                <div class="card patient-summary">
-                    <div class="card-header"><i class="fas fa-user-check"></i> Tóm tắt hồ sơ</div>
-                    <div class="summary-grid">
-                        <div>Mã Y tế: <strong id="rec-id">--</strong></div>
-                        <div>Mã HS: <strong id="rec-code">--</strong></div>
-                        <div>Giới tính: <span id="rec-gender">--</span></div>
-                        <div>Ngày sinh: <span id="rec-dob">--</span></div>
-                    </div>
-                    <div id="rec-warning" class="warning-alert" style="display: none;"></div>
-                </div>
+                <!-- MỚI: Khung tóm tắt đầy đủ thông tin học sinh -->
+<div class="card patient-summary">
+    <div class="card-header"><i class="fas fa-user-check"></i> Thông tin hành chính & Thể trạng</div>
+    <div class="summary-details-grid">
+        <div class="summary-item">Mã Y tế: <strong id="rec-id">--</strong></div>
+        <div class="summary-item">Mã HS: <strong id="rec-code">--</strong></div>
+        <div class="summary-item">Ngày sinh: <span id="rec-dob">--</span></div>
+        <div class="summary-item">Giới tính: <span id="rec-gender">--</span></div>
+        <div class="summary-item">SĐT Học sinh: <span id="rec-phone">--</span></div>
+        <div class="summary-item">SĐT Phụ huynh: <span id="rec-parent-phone">--</span></div>
+        <div class="summary-item address-row">Địa chỉ: <span id="rec-address">--</span></div>
+        <div class="summary-item">Chiều cao: <span id="rec-height">--</span></div>
+        <div class="summary-item">Cân nặng: <span id="rec-weight">--</span></div>
+        <div class="summary-item">Chỉ số BMI: <strong id="rec-bmi">--</strong></div>
+        <div class="summary-item">Liên kết App: <span id="rec-email" style="color: var(--primary-color);">--</span></div>
+    </div>
+    <div id="rec-warning" class="warning-alert" style="display: none;"></div>
+</div>
 
                 <div class="card">
                     <div class="card-header"><i class="fas fa-diagnoses"></i> Tiếp nhận lượt khám</div>
@@ -197,14 +205,10 @@
 
                     <div class="form-group">
                         <label>Hướng xử lý</label>
-                        <select id="yt-treatment">
-                            <option value="Nghỉ ngơi tại chỗ">Nghỉ ngơi tại chỗ</option>
-                            <option value="Cấp thuốc uống theo liều">Cấp thuốc uống theo liều</option>
-                            <option value="Sát trùng & băng bó vết thương">Sát trùng & băng bó vết thương</option>
-                            <option value="Chườm đá lạnh">Chườm đá lạnh</option>
-                            <option value="Liên hệ phụ huynh đón về">Liên hệ phụ huynh đón về</option>
-                            <option value="Chuyển cơ sở y tế tuyến trên">Chuyển cơ sở y tế tuyến trên</option>
-                        </select>
+                        <div class="form-group">
+    <label>Hướng xử lý (Tự động điền khi cấp thuốc hoặc tự nhập)</label>
+    <input type="text" id="yt-treatment" placeholder="Cách xử lý triệu chứng...">
+</div>
                     </div>
 
                     <div class="form-group">
@@ -220,67 +224,100 @@
                         </div>
                     </div>
 
-                    <button onclick="saveReception()" class="btn btn-success" style="width: 100%; margin-top: 15px;">
-                        <i class="fas fa-check-circle"></i> Hoàn thành tiếp nhận
+                    <button onclick="openSignatureModal()" class="btn btn-success" style="width: 100%; margin-top: 15px;">
+                    <i class="fas fa-pen-nib"></i> Tiến hành ký tên & Xác nhận
                     </button>
                 </div>
             </section>
 
             <!-- TAB 2: THÔNG TIN CHI TIẾT -->
             <section id="pane-info" class="tab-pane">
-                <div class="card">
-                    <div class="card-header"><i class="fas fa-id-card"></i> Hành chính & Thể trạng</div>
-                    <div class="form-group">
-                        <label>Mã Học Sinh</label>
-                        <input type="text" id="edit-student-code">
-                    </div>
-                    <div class="form-group">
-                        <label>Họ và Tên</label>
-                        <input type="text" id="edit-student-name">
-                    </div>
-                    <div class="form-group">
-                        <label>Lớp</label>
-                        <input type="text" id="edit-student-class">
-                    </div>
-                    <div class="form-group">
-                        <label>Ngày sinh</label>
-                        <input type="date" id="edit-student-dob">
-                    </div>
-                    <div class="form-group">
-                        <label>Giới tính</label>
-                        <select id="edit-student-gender">
-                            <option value="Nam">Nam</option>
-                            <option value="Nữ">Nữ</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Số điện thoại phụ huynh</label>
-                        <input type="text" id="edit-student-parent-phone">
-                    </div>
-                    <div class="form-group">
-                        <label>Địa chỉ</label>
-                        <input type="text" id="edit-student-address" placeholder="Số nhà, Tên đường, Phường/Xã...">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Chiều cao (cm)</label>
-                            <input type="number" id="edit-student-height">
-                        </div>
-                        <div class="form-group">
-                            <label>Cân nặng (kg)</label>
-                            <input type="number" id="edit-student-weight">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Ghi chú lâm sàng (Dị ứng, bệnh lý nền...)</label>
-                        <textarea id="edit-student-medical-note" rows="3" placeholder="Ghi nhận tiền sử dị ứng thuốc, bệnh lý nền..."></textarea>
-                    </div>
+    <div class="card">
+        <div class="card-header"><i class="fas fa-id-card"></i> Hồ sơ chi tiết học sinh</div>
+        
+        <div class="form-group">
+            <label>Mã Y Tế (Hệ thống tự tạo)</label>
+            <input type="text" id="edit-student-id" readonly style="background: #f1f5f9; color: var(--text-muted);">
+        </div>
+        <div class="form-group">
+            <label>Mã Học Sinh (Mã của trường)</label>
+            <input type="text" id="edit-student-code" placeholder="Nhập mã học sinh của trường...">
+        </div>
+        <div class="form-group">
+            <label>Họ và Tên</label>
+            <input type="text" id="edit-student-name">
+        </div>
+        <div class="form-group">
+            <label>Lớp</label>
+            <input type="text" id="edit-student-class">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Ngày sinh</label>
+                <input type="date" id="edit-student-dob">
+            </div>
+            <div class="form-group">
+                <label>Giới tính</label>
+                <select id="edit-student-gender">
+                    <option value="Nam">Nam</option>
+                    <option value="Nữ">Nữ</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>SĐT Học sinh</label>
+                <input type="text" id="edit-student-phone" placeholder="Số điện thoại cá nhân...">
+            </div>
+            <div class="form-group">
+                <label>SĐT Phụ huynh</label>
+                <input type="text" id="edit-student-parent-phone">
+            </div>
+        </div>
+        
+        <h4 style="font-size: 0.85rem; color: var(--text-muted); margin: 15px 0 10px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 5px; text-transform: uppercase;">Địa chỉ thường trú</h4>
+        <div class="form-group">
+            <label>Số nhà, Tên đường</label>
+            <input type="text" id="edit-student-street" placeholder="Ví dụ: 123 Đường số 1...">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Phường / Xã</label>
+                <input type="text" id="edit-student-ward" placeholder="Nhập phường hoặc xã...">
+            </div>
+            <div class="form-group">
+                <label>Tỉnh / Thành phố</label>
+                <input type="text" id="edit-student-city" value="Thành phố Hồ Chí Minh" readonly style="background: #f1f5f9;">
+            </div>
+        </div>
 
-                    <button onclick="saveStudentProfile()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
-                        <i class="fas fa-save"></i> Cập nhật hồ sơ
-                    </button>
-                </div>
-            </section>
+        <h4 style="font-size: 0.85rem; color: var(--text-muted); margin: 15px 0 10px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 5px; text-transform: uppercase;">Chỉ số thể chất</h4>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Chiều cao (cm)</label>
+                <input type="number" id="edit-student-height">
+            </div>
+            <div class="form-group">
+                <label>Cân nặng (kg)</label>
+                <input type="number" id="edit-student-weight">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>Email liên kết ứng dụng</label>
+            <input type="text" id="edit-student-email" readonly style="background: #f1f5f9; color: var(--text-muted);" placeholder="Học sinh chưa liên kết app">
+        </div>
+        
+        <div class="form-group">
+            <label style="color: #ef4444;"><i class="fas fa-exclamation-triangle"></i> Ghi chú lâm sàng (Dị ứng, bệnh nền...)</label>
+            <textarea id="edit-student-medical-note" rows="3" placeholder="Nhập tiền sử dị ứng, hen suyễn, bệnh tim mạch..."></textarea>
+        </div>
+
+        <button onclick="saveStudentProfile()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-save"></i> Cập nhật hồ sơ đầy đủ
+        </button>
+    </div>
+</section>
 
             <!-- TAB 3: LỊCH SỬ KHÁM -->
             <section id="pane-history" class="tab-pane">
@@ -335,5 +372,25 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <script src="config.js"></script>
     <script src="mobile_admin.js"></script>
+    <!-- MỚI: Pop-up ký tên nâng cấp trực quan -->
+<div id="signature-modal" class="modal">
+    <div class="modal-content" style="max-width: 90%; width: 500px; padding: 25px;">
+        <button class="btn-close-modal" onclick="closeSignatureModal()">&times;</button>
+        <h3 style="margin-bottom: 10px; color: var(--text-main);"><i class="fas fa-file-signature"></i> Chữ ký học sinh</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">Vui lòng ký xác nhận trực tiếp vào khung trắng dưới đây</p>
+        
+        <div class="signature-container" style="height: 250px; background: #fff; border: 2px dashed #cbd5e1; border-radius: 12px; position: relative;">
+            <canvas id="signature-pad"></canvas>
+            <button type="button" class="btn-clear-sig" onclick="clearSignature()"><i class="fas fa-eraser"></i> Xóa ký lại</button>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="closeSignatureModal()" class="btn btn-secondary" style="flex: 1;">Hủy bỏ</button>
+            <button onclick="confirmSignatureAndSave()" class="btn btn-success" style="flex: 1;">
+                <i class="fas fa-check"></i> Xác nhận & Lưu hồ sơ
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
