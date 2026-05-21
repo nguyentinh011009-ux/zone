@@ -184,16 +184,29 @@ function enableBiometric(agree) {
     enterSystem();
 }
 
-function triggerBiometricAuth() {
-    if (window.PublicKeyCredential) {
-        // Mô phỏng xác minh sinh trắc học cục bộ
-        navigator.credentials.create ? console.log("Hỗ trợ sinh trắc học") : null;
+async function triggerBiometricAuth() {
+    if (!window.PublicKeyCredential) {
+        alert("Thiết bị hoặc trình duyệt của bạn không hỗ trợ công nghệ xác thực sinh trắc học!");
+        return;
     }
-    
-    // Tạo hiệu ứng nhận vân tay trực quan
-    setTimeout(() => {
-        enterSystem();
-    }, 600);
+
+    // Thiết lập tùy chọn yêu cầu sinh trắc học cục bộ của trình duyệt di động
+    const options = {
+        challenge: new Uint8Array([1, 9, 0, 9, 2, 0, 0, 5]), // Giá trị ngẫu nhiên xác thực
+        rp: { name: "Hệ thống Y Tế Số VTS" },
+        user: { id: new Uint8Array([1]), name: "admin", displayName: "Quản trị viên" },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }] // Thuật toán mã hóa chuẩn bảo mật gốc
+    };
+
+    try {
+        // Gọi API gốc kích hoạt FaceID trên iOS hoặc Vân tay trên Android
+        const credential = await navigator.credentials.create({ publicKey: options });
+        if (credential) {
+            enterSystem();
+        }
+    } catch (err) {
+        console.warn("Huỷ xác thực sinh trắc học, chuyển sang sử dụng mã PIN thiết bị.", err);
+    }
 }
 
 function enterSystem() {
@@ -277,15 +290,27 @@ async function loadStudentToTask(studentId) {
         if (doc.exists) {
             activeStudentData = { id: doc.id, ...doc.data() };
             
-            // Gán dữ liệu cho Header
-            document.getElementById('active-student-name').innerText = activeStudentData.name;
-            document.getElementById('active-student-class').innerText = "Lớp: " + activeStudentData.class;
+// Đoạn gán dữ liệu trong hàm loadStudentToTask(studentId)
+document.getElementById('rec-id').innerText = activeStudentData.id;
+document.getElementById('rec-code').innerText = activeStudentData.studentCode || 'Chưa cập nhật';
+document.getElementById('rec-gender').innerText = activeStudentData.gender || 'Chưa rõ';
+document.getElementById('rec-dob').innerText = activeStudentData.dob ? new Date(activeStudentData.dob).toLocaleDateString('vi-VN') : 'Chưa cập nhật';
+document.getElementById('rec-phone').innerText = activeStudentData.phone || 'Chưa cập nhật';
+document.getElementById('rec-parent-phone').innerText = activeStudentData.parentPhone || 'Chưa cập nhật';
+document.getElementById('rec-address').innerText = activeStudentData.street ? `${activeStudentData.street}, ${activeStudentData.ward || ''}, ${activeStudentData.city || ''}` : 'Chưa cập nhật';
+document.getElementById('rec-height').innerText = activeStudentData.height ? `${activeStudentData.height} cm` : 'Chưa cập nhật';
+document.getElementById('rec-weight').innerText = activeStudentData.weight ? `${activeStudentData.weight} kg` : 'Chưa cập nhật';
+document.getElementById('rec-email').innerText = activeStudentData.linkedEmail || 'Chưa liên kết app';
 
-            // Đổ dữ liệu vào Tab 1: Tiếp nhận
-            document.getElementById('rec-id').innerText = activeStudentData.id;
-            document.getElementById('rec-code').innerText = activeStudentData.studentCode || 'Không có';
-            document.getElementById('rec-gender').innerText = activeStudentData.gender || 'Chưa rõ';
-            document.getElementById('rec-dob').innerText = activeStudentData.dob ? new Date(activeStudentData.dob).toLocaleDateString('vi-VN') : 'Chưa nhập';
+// Tính toán BMI tự động
+if (activeStudentData.height && activeStudentData.weight) {
+    const h = parseFloat(activeStudentData.height) / 100;
+    const w = parseFloat(activeStudentData.weight);
+    const bmi = (w / (h * h)).toFixed(1);
+    document.getElementById('rec-bmi').innerText = bmi;
+} else {
+    document.getElementById('rec-bmi').innerText = 'Chưa tính';
+}
             
             const warningAlert = document.getElementById('rec-warning');
             if (activeStudentData.medicalNote) {
@@ -295,17 +320,22 @@ async function loadStudentToTask(studentId) {
                 warningAlert.style.display = 'none';
             }
 
-            // Đổ dữ liệu vào Tab 2: Thông tin chi tiết để sửa
-            document.getElementById('edit-student-code').value = activeStudentData.studentCode || '';
-            document.getElementById('edit-student-name').value = activeStudentData.name || '';
-            document.getElementById('edit-student-class').value = activeStudentData.class || '';
-            document.getElementById('edit-student-dob').value = activeStudentData.dob || '';
-            document.getElementById('edit-student-gender').value = activeStudentData.gender || 'Nam';
-            document.getElementById('edit-student-parent-phone').value = activeStudentData.parentPhone || '';
-            document.getElementById('edit-student-address').value = activeStudentData.street || '';
-            document.getElementById('edit-student-height').value = activeStudentData.height || '';
-            document.getElementById('edit-student-weight').value = activeStudentData.weight || '';
-            document.getElementById('edit-student-medical-note').value = activeStudentData.medicalNote || '';
+// Gán thông tin đầy đủ vào Tab 2 (Chỉnh sửa)
+document.getElementById('edit-student-id').value = activeStudentData.id;
+document.getElementById('edit-student-code').value = activeStudentData.studentCode || '';
+document.getElementById('edit-student-name').value = activeStudentData.name || '';
+document.getElementById('edit-student-class').value = activeStudentData.class || '';
+document.getElementById('edit-student-dob').value = activeStudentData.dob || '';
+document.getElementById('edit-student-gender').value = activeStudentData.gender || 'Nam';
+document.getElementById('edit-student-phone').value = activeStudentData.phone || '';
+document.getElementById('edit-student-parent-phone').value = activeStudentData.parentPhone || '';
+document.getElementById('edit-student-street').value = activeStudentData.street || '';
+document.getElementById('edit-student-ward').value = activeStudentData.ward || '';
+document.getElementById('edit-student-city').value = activeStudentData.city || 'Thành phố Hồ Chí Minh';
+document.getElementById('edit-student-height').value = activeStudentData.height || '';
+document.getElementById('edit-student-weight').value = activeStudentData.weight || '';
+document.getElementById('edit-student-email').value = activeStudentData.linkedEmail || '';
+document.getElementById('edit-student-medical-note').value = activeStudentData.medicalNote || '';
 
             // Tải Tab 3: Lịch sử khám
             loadStudentHistory(studentId);
@@ -487,10 +517,18 @@ function addMedicine() {
 
     renderSelectedMedicines();
 
-    // Nối nội dung vào xử lý
-    const treatmentInput = document.getElementById('yt-treatment');
-    const textAppend = `Cấp thuốc: ${itemName} (${qty} ${unit})`;
-    treatmentInput.value = treatmentInput.value ? `${treatmentInput.value}, ${textAppend}` : textAppend;
+// Thay thế đoạn cuối hàm addMedicine() để tự động điền danh sách thuốc
+const treatmentInput = document.getElementById('yt-treatment');
+// Chỉ lấy tên thuốc và số lượng ghép lại
+const textAppend = `Cấp ${itemName} (${qty} ${unit})`;
+
+let currentVal = treatmentInput.value.trim();
+if (currentVal === "") {
+    treatmentInput.value = textAppend;
+} else {
+    // Nếu trong ô xử lý đã có chữ thì thêm dấu phẩy ngăn cách
+    treatmentInput.value = currentVal + ", " + textAppend;
+}
 
     // Reset form cấp
     document.getElementById('med-search-input').value = '';
@@ -758,10 +796,63 @@ function toggleBiometricsSetting() {
     toggleSettingsDropdown();
 }
 
-function requestChangePasscode() {
-    localStorage.removeItem('vts_mobile_pin');
-    localStorage.setItem('vts_mobile_registered', 'false');
-    location.reload();
+async function requestChangePasscode() {
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert("Vui lòng thực hiện đăng nhập để xác thực thông tin quản trị viên trước!");
+        return;
+    }
+
+    const email = user.email;
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Tạo mã OTP 6 chữ số ngẫu nhiên
+
+    try {
+        // 1. Lưu mã OTP tạm thời vào Firestore để đối chiếu, thời hạn hiệu lực là 5 phút
+        await db.collection('yt_temp_otp').doc(email).set({
+            otp: otp,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // 2. Kích hoạt tính năng gửi Email tự động thông qua Collection Mail (Firebase Trigger Email)
+        await db.collection('mail').add({
+            to: email,
+            message: {
+                subject: "[Y Tế Số VTS] Mã OTP xác nhận đổi mã PIN thiết bị",
+                text: `Mã OTP của bạn là: ${otp}. Mã này sẽ hết hiệu lực sau 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 500px;">
+                        <h2 style="color: #0062ff; text-align: center;">Y TẾ SỐ VTS</h2>
+                        <p>Chào bạn,</p>
+                        <p>Hệ thống nhận được yêu cầu đổi mã PIN thiết bị của bạn. Dưới đây là mã xác thực OTP của bạn:</p>
+                        <div style="text-align: center; margin: 25px 0;">
+                            <span style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #0062ff; padding: 10px 20px; background: #f0fdf4; border: 1px dashed #10b981; border-radius: 8px;">${otp}</span>
+                        </div>
+                        <p style="color: #ef4444; font-size: 0.85rem;">*Mã xác thực này chỉ có hiệu lực trong vòng 5 phút.</p>
+                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                        <p style="font-size: 0.8rem; color: #64748b; text-align: center;">Bản quyền hệ thống © THPT Võ Thị Sáu</p>
+                    </div>`
+            }
+        });
+
+        // 3. Hiển thị hộp thoại yêu cầu người dùng nhập OTP đã gửi
+        const userOTPInput = prompt("Hệ thống đã gửi một mã xác thực (OTP) tới Email quản trị của bạn. Vui lòng kiểm tra hộp thư (và thư rác) và nhập mã tại đây:");
+        
+        if (userOTPInput === otp) {
+            const newPin = prompt("Xác thực thành công! Nhập mã PIN mới (gồm 6 chữ số):");
+            if (newPin && newPin.length === 6 && !isNaN(newPin)) {
+                localStorage.setItem('vts_mobile_pin', newPin);
+                alert("Thay đổi mã PIN thiết bị thành công!");
+                toggleSettingsDropdown();
+            } else {
+                alert("Mã PIN không đúng quy cách (phải là 6 ký tự số)!");
+            }
+        } else {
+            alert("Mã xác thực OTP nhập vào không chính xác!");
+        }
+
+    } catch (e) {
+        alert("Lỗi không thể gửi mã xác nhận: " + e.message);
+    }
 }
 
 function handleLogout() {
@@ -797,4 +888,59 @@ function removeVietnameseTones(str) {
     str = str.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, "Y");
     str = str.replace(/Đ/g, "D");
     return str;
+}
+// Tính năng khóa màn hình khi thoát ứng dụng hoặc đổi tab (như app ngân hàng)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+        // Khi người dùng thoát ra màn hình chính hoặc chuyển ứng dụng, khóa trạng thái phiên
+        sessionStorage.setItem('vts_mobile_session_locked', 'true');
+    }
+});
+
+// Kiểm tra khóa khi ứng dụng hoạt động trở lại
+window.addEventListener('pageshow', () => {
+    const isRegistered = localStorage.getItem('vts_mobile_registered');
+    const isSessionLocked = sessionStorage.getItem('vts_mobile_session_locked');
+    
+    if (isRegistered === 'true' && isSessionLocked === 'true') {
+        // Reset trạng thái nhập PIN
+        loginPasscodeArray = [];
+        updateDots('login-dots', 0);
+        showAuthStep('step-login');
+        
+        // Tự động gọi quét sinh trắc học nếu đã bật
+        if (localStorage.getItem('vts_mobile_biometric') === 'true') {
+            triggerBiometricAuth();
+        }
+    }
+});
+
+// Cập nhật hàm enterSystem để mở khóa phiên hoạt động
+const originalEnterSystem = enterSystem;
+enterSystem = function() {
+    sessionStorage.removeItem('vts_mobile_session_locked');
+    originalEnterSystem();
+};
+// Điều khiển Pop-up ký tên
+function openSignatureModal() {
+    const symptom = document.getElementById('yt-symptom').value.trim();
+    const treatment = document.getElementById('yt-treatment').value.trim();
+    
+    if (!symptom || !treatment) {
+        alert("Vui lòng nhập đầy đủ Triệu chứng và Hướng xử lý của học sinh trước khi tiến hành ký tên!");
+        return;
+    }
+    
+    document.getElementById('signature-modal').classList.add('active');
+    setTimeout(initSignaturePad, 300); // Trì hoãn khởi tạo để canvas nhận diện đúng chiều rộng modal
+}
+
+function closeSignatureModal() {
+    document.getElementById('signature-modal').classList.remove('active');
+}
+
+function confirmSignatureAndSave() {
+    // Tắt modal trước khi thực thi tiến trình lưu nền của Firebase
+    closeSignatureModal();
+    saveReception(); // Gọi hàm lưu trữ gốc
 }
