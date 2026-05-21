@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mobile Admin | Y Tế Số</title>
+    <link rel="stylesheet" href="mobile_admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- 1. MÀN HÌNH XÁC THỰC & ĐĂNG KÝ THIẾT BỊ -->
+    <div id="auth-screen" class="auth-container">
+        <!-- Bước 1: Xác thực Google Admin lần đầu -->
+        <div id="step-google-login" class="auth-card fade-in">
+            <div class="auth-logo">
+                <img src="https://res.cloudinary.com/dsnlbzjby/image/upload/q_auto/f_auto/v1775563762/Gemini_Generated_Image_1l7lw31l7lw31l7l_owwg7q.png" alt="Logo">
+            </div>
+            <h2>ĐĂNG KÝ THIẾT BỊ</h2>
+            <p class="auth-subtitle">Hệ thống Y Tế Số VTS - Phiên bản Mobile Admin</p>
+            <button id="btn-google-auth" onclick="handleGoogleAuth()" class="btn btn-google">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google">
+                Xác thực tài khoản Google
+            </button>
+        </div>
+
+        <!-- Bước 2: Thiết lập Passcode thiết bị -->
+        <div id="step-set-passcode" class="auth-card fade-in" style="display: none;">
+            <h2>TẠO MÃ PIN TRUY CẬP</h2>
+            <p class="auth-subtitle">Thiết lập mã PIN gồm 6 số để đăng nhập nhanh</p>
+            <div class="passcode-dots" id="setup-dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="keyboard-grid" id="setup-keyboard"></div>
+        </div>
+
+        <!-- Bước 3: Xác nhận lại Passcode -->
+        <div id="step-confirm-passcode" class="auth-card fade-in" style="display: none;">
+            <h2>XÁC NHẬN MÃ PIN</h2>
+            <p class="auth-subtitle">Vui lòng nhập lại mã PIN để xác nhận</p>
+            <div class="passcode-dots" id="confirm-dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="keyboard-grid" id="confirm-keyboard"></div>
+        </div>
+
+        <!-- Bước 4: Kích hoạt sinh trắc học -->
+        <div id="step-biometric-setup" class="auth-card fade-in" style="display: none;">
+            <i class="fas fa-fingerprint fa-4x bio-icon"></i>
+            <h2>KÍCH HOẠT SINH TRẮC HỌC</h2>
+            <p class="auth-subtitle">Sử dụng Vân tay hoặc Khuôn mặt để truy cập cực nhanh</p>
+            <button onclick="enableBiometric(true)" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;">Đồng ý kích hoạt</button>
+            <button onclick="enableBiometric(false)" class="btn btn-text" style="width: 100%;">Bỏ qua lúc này</button>
+        </div>
+
+        <!-- Màn hình Đăng nhập PIN/Sinh trắc học sau khi đã thiết lập thiết bị -->
+        <div id="step-login" class="auth-card fade-in" style="display: none;">
+            <div class="auth-logo">
+                <img src="https://res.cloudinary.com/dsnlbzjby/image/upload/q_auto/f_auto/v1775563762/Gemini_Generated_Image_1l7lw31l7lw31l7l_owwg7q.png" alt="Logo">
+            </div>
+            <h2>MÃ KHÓA THIẾT BỊ</h2>
+            <p class="auth-subtitle">Nhập mã PIN hoặc sử dụng sinh trắc học để truy cập</p>
+            <div class="passcode-dots" id="login-dots">
+                <span></span><span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div style="display: flex; justify-content: center; gap: 10px; margin-top: 15px;">
+                <button id="btn-bio-trigger" onclick="triggerBiometricAuth()" class="btn btn-round" style="display: none;">
+                    <i class="fas fa-fingerprint"></i>
+                </button>
+            </div>
+            <div class="keyboard-grid" id="login-keyboard"></div>
+        </div>
+    </div>
+
+    <!-- 2. TRANG TRA CỨU HỌC SINH TOÀN TRƯỜNG -->
+    <div id="search-screen" style="display: none;" class="page-has-header">
+        <!-- Header -->
+        <header class="glass-header" id="search-header">
+            <div class="header-left" onclick="toggleSettingsDropdown()">
+                <img id="admin-avatar" src="https://cdn-icons-png.flaticon.com/512/149/149071.png" alt="Admin">
+                <div class="header-admin-info">
+                    <span id="admin-display-name">Admin</span>
+                    <small>Phòng Y Tế</small>
+                </div>
+            </div>
+            <div class="header-right" onclick="goToHome()">
+                <div class="header-logo-container">
+                    <img src="https://res.cloudinary.com/dsnlbzjby/image/upload/q_auto/f_auto/v1775563762/Gemini_Generated_Image_1l7lw31l7lw31l7l_owwg7q.png" alt="Logo">
+                </div>
+            </div>
+        </header>
+
+        <!-- Dropdown Cài đặt Tài khoản -->
+        <div id="settings-dropdown" class="dropdown-menu">
+            <div class="dropdown-header">Thiết lập bảo mật</div>
+            <button onclick="toggleBiometricsSetting()" class="dropdown-item">
+                <i class="fas fa-fingerprint"></i> <span id="lbl-bio-toggle">Bật sinh trắc học</span>
+            </button>
+            <button onclick="requestChangePasscode()" class="dropdown-item">
+                <i class="fas fa-key"></i> Đổi mã PIN thiết bị
+            </button>
+            <hr>
+            <button onclick="handleLogout()" class="dropdown-item text-danger">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất tài khoản
+            </button>
+        </div>
+
+        <main class="main-content">
+            <div class="search-section">
+                <h2>Tra cứu học sinh</h2>
+                <div class="search-bar-container">
+                    <input type="text" id="student-search-input" placeholder="Nhập tên học sinh hoặc lớp...">
+                    <button onclick="searchStudent()" class="btn-search-trigger">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <button onclick="openQRScanner()" class="btn btn-qr-scan">
+                    <i class="fas fa-qrcode"></i> Quét mã học sinh / Mã Y tế
+                </button>
+            </div>
+
+            <!-- Kết quả tìm kiếm -->
+            <div class="results-section">
+                <h3 id="results-count">Danh sách học sinh</h3>
+                <div id="student-results-list" class="results-list">
+                    <div class="empty-state">
+                        <i class="fas fa-user-friends"></i>
+                        <p>Nhập từ khóa tìm kiếm hoặc quét QR để tìm nhanh học sinh</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 3. GIAO DIỆN TÁC VỤ CHI TIẾT (Có 3 bottom tab) -->
+    <div id="task-screen" style="display: none;" class="page-has-header page-has-tabs">
+        <!-- Header -->
+        <header class="glass-header" id="task-header">
+            <div class="header-left">
+                <button class="btn-back-main" onclick="backToSearch()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="header-admin-info">
+                    <span id="active-student-name">...</span>
+                    <small id="active-student-class">...</small>
+                </div>
+            </div>
+            <div class="header-right" onclick="goToHome()">
+                <div class="header-logo-container">
+                    <img src="https://res.cloudinary.com/dsnlbzjby/image/upload/q_auto/f_auto/v1775563762/Gemini_Generated_Image_1l7lw31l7lw31l7l_owwg7q.png" alt="Logo">
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content" style="padding-bottom: 80px;">
+            <!-- TAB 1: TIẾP NHẬN -->
+            <section id="pane-reception" class="tab-pane active">
+                <div class="card patient-summary">
+                    <div class="card-header"><i class="fas fa-user-check"></i> Tóm tắt hồ sơ</div>
+                    <div class="summary-grid">
+                        <div>Mã Y tế: <strong id="rec-id">--</strong></div>
+                        <div>Mã HS: <strong id="rec-code">--</strong></div>
+                        <div>Giới tính: <span id="rec-gender">--</span></div>
+                        <div>Ngày sinh: <span id="rec-dob">--</span></div>
+                    </div>
+                    <div id="rec-warning" class="warning-alert" style="display: none;"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-diagnoses"></i> Tiếp nhận lượt khám</div>
+                    <div class="form-group">
+                        <label>Triệu chứng bệnh</label>
+                        <input type="text" id="yt-symptom" placeholder="Sốt, đau đầu, ho...">
+                    </div>
+
+                    <!-- Khu vực cấp thuốc nhanh -->
+                    <div class="form-group medic-select-area">
+                        <label class="toggle-medic-header">
+                            <span><i class="fas fa-pills"></i> Cấp thuốc & vật tư</span>
+                            <input type="checkbox" id="chk-use-medicine" onchange="toggleMedicineSection()">
+                        </label>
+                        
+                        <div id="medicine-selection-box" style="display: none;">
+                            <div class="med-search-box">
+                                <input type="text" id="med-search-input" placeholder="Gõ tên thuốc cần tìm..." oninput="searchMedicine(this.value)">
+                                <div id="med-suggest-box" class="suggest-dropdown"></div>
+                            </div>
+                            <div class="med-grid">
+                                <select id="med-batch-select"><option value="">-- Chọn lô --</option></select>
+                                <input type="number" id="med-qty-input" min="1" value="1">
+                                <button type="button" class="btn btn-primary" onclick="addMedicine()">Thêm</button>
+                            </div>
+                            <div id="med-pending-list" class="medicines-added-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Hướng xử lý</label>
+                        <select id="yt-treatment">
+                            <option value="Nghỉ ngơi tại chỗ">Nghỉ ngơi tại chỗ</option>
+                            <option value="Cấp thuốc uống theo liều">Cấp thuốc uống theo liều</option>
+                            <option value="Sát trùng & băng bó vết thương">Sát trùng & băng bó vết thương</option>
+                            <option value="Chườm đá lạnh">Chườm đá lạnh</option>
+                            <option value="Liên hệ phụ huynh đón về">Liên hệ phụ huynh đón về</option>
+                            <option value="Chuyển cơ sở y tế tuyến trên">Chuyển cơ sở y tế tuyến trên</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ghi chú thêm</label>
+                        <input type="text" id="yt-note" placeholder="Thông tin ghi chú lâm sàng khác...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ký xác nhận (Ký trực tiếp trên màn hình)</label>
+                        <div class="signature-container">
+                            <canvas id="signature-pad"></canvas>
+                            <button type="button" class="btn-clear-sig" onclick="clearSignature()"><i class="fas fa-eraser"></i> Xóa ký lại</button>
+                        </div>
+                    </div>
+
+                    <button onclick="saveReception()" class="btn btn-success" style="width: 100%; margin-top: 15px;">
+                        <i class="fas fa-check-circle"></i> Hoàn thành tiếp nhận
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 2: THÔNG TIN CHI TIẾT -->
+            <section id="pane-info" class="tab-pane">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-id-card"></i> Hành chính & Thể trạng</div>
+                    <div class="form-group">
+                        <label>Mã Học Sinh</label>
+                        <input type="text" id="edit-student-code">
+                    </div>
+                    <div class="form-group">
+                        <label>Họ và Tên</label>
+                        <input type="text" id="edit-student-name">
+                    </div>
+                    <div class="form-group">
+                        <label>Lớp</label>
+                        <input type="text" id="edit-student-class">
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày sinh</label>
+                        <input type="date" id="edit-student-dob">
+                    </div>
+                    <div class="form-group">
+                        <label>Giới tính</label>
+                        <select id="edit-student-gender">
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Số điện thoại phụ huynh</label>
+                        <input type="text" id="edit-student-parent-phone">
+                    </div>
+                    <div class="form-group">
+                        <label>Địa chỉ</label>
+                        <input type="text" id="edit-student-address" placeholder="Số nhà, Tên đường, Phường/Xã...">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Chiều cao (cm)</label>
+                            <input type="number" id="edit-student-height">
+                        </div>
+                        <div class="form-group">
+                            <label>Cân nặng (kg)</label>
+                            <input type="number" id="edit-student-weight">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ghi chú lâm sàng (Dị ứng, bệnh lý nền...)</label>
+                        <textarea id="edit-student-medical-note" rows="3" placeholder="Ghi nhận tiền sử dị ứng thuốc, bệnh lý nền..."></textarea>
+                    </div>
+
+                    <button onclick="saveStudentProfile()" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                        <i class="fas fa-save"></i> Cập nhật hồ sơ
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 3: LỊCH SỬ KHÁM -->
+            <section id="pane-history" class="tab-pane">
+                <div class="card">
+                    <div class="card-header"><i class="fas fa-history"></i> Nhật ký khám bệnh</div>
+                    <div id="visit-history-list" class="timeline-container">
+                        <!-- Đổ bằng JS -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- THANH BOTTOM TAB ĐIỀU HƯỚNG -->
+        <nav class="bottom-nav-bar" id="app-bottom-nav">
+            <button class="nav-item" onclick="switchTaskTab('pane-info', this)">
+                <i class="fas fa-user-cog"></i>
+                <span>Hồ sơ</span>
+            </button>
+            <button class="nav-item active center-btn" onclick="switchTaskTab('pane-reception', this)">
+                <i class="fas fa-ambulance"></i>
+                <span>Tiếp nhận</span>
+            </button>
+            <button class="nav-item" onclick="switchTaskTab('pane-history', this)">
+                <i class="fas fa-file-medical-alt"></i>
+                <span>Lịch sử</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- MODAL QUÉT MÃ QR CAMERA -->
+    <div id="scanner-modal" class="modal">
+        <div class="modal-content scanner-content">
+            <button class="btn-close-modal" onclick="closeQRScanner()">&times;</button>
+            <h3>QUÉT MÃ QR Y TẾ</h3>
+            <p>Di chuyển mã QR của học sinh vào giữa vùng camera</p>
+            <div class="scanner-viewport">
+                <div class="scanner-laser"></div>
+                <video id="scanner-video" playsinline></video>
+            </div>
+            <div class="scanner-footer">
+                <button onclick="toggleCameraFlash()" id="btn-flash" class="btn btn-secondary">
+                    <i class="fas fa-bolt"></i> Bật Đèn Flash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIÊN KẾT FIREBASE & THƯ VIỆN BỔ TRỢ -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="config.js"></script>
+    <script src="mobile_admin.js"></script>
+</body>
+</html>
