@@ -857,3 +857,32 @@ hr {
     50% { top: 100%; }
     100% { top: 0%; }
 }
+/* --- PHẦN BỔ SUNG CẤU TRÚC MOBILE ADMIN --- */
+.summary-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    font-size: 0.85rem;
+    margin-top: 10px;
+}
+
+.summary-item {
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.summary-item.address-row {
+    grid-column: span 2;
+}
+
+/* Định dạng cho pop-up ký tên di động */
+#signature-modal .modal-content {
+    animation: zoomIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
