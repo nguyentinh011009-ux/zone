@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Mobile Admin | Y Tế Số</title>
+    <title>Mobile Admin</title>
     <link rel="apple-touch-icon" sizes="180x180" href="https://res.cloudinary.com/dsnlbzjby/image/upload/q_auto/f_auto/v1775563762/Gemini_Generated_Image_1l7lw31l7lw31l7l_owwg7q.png">
     <link rel="icon" href="https://res.cloudinary.com/dsnlbzjby/image/upload/q_auto/f_auto/v1775563762/Gemini_Generated_Image_1l7lw31l7lw31l7l_owwg7q.png" sizes="32x32" type="image/png">
     <link rel="stylesheet" href="mobile_admin.css">
@@ -93,20 +93,27 @@
             </div>
         </header>
 
-        <!-- Dropdown Cài đặt Tài khoản -->
-        <div id="settings-dropdown" class="dropdown-menu">
-            <div class="dropdown-header">Thiết lập bảo mật</div>
-            <button onclick="toggleBiometricsSetting()" class="dropdown-item">
-                <i class="fas fa-fingerprint"></i> <span id="lbl-bio-toggle">Bật sinh trắc học</span>
-            </button>
-            <button onclick="requestChangePasscode()" class="dropdown-item">
-                <i class="fas fa-key"></i> Đổi mã PIN thiết bị
-            </button>
-            <hr>
-            <button onclick="handleLogout()" class="dropdown-item text-danger">
-                <i class="fas fa-sign-out-alt"></i> Đăng xuất tài khoản
-            </button>
+<!-- Cập nhật khối Dropdown Cài đặt Tài khoản trong tệp mobile_admin.html -->
+<div id="settings-dropdown" class="dropdown-menu">
+    <div class="dropdown-header">Thiết lập bảo mật</div>
+    
+    <!-- Nút kích hoạt gạt bật tắt sinh trắc học trực quan -->
+    <button onclick="toggleBiometricsSetting()" class="dropdown-item" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-fingerprint" style="font-size: 1.1rem;"></i>
+            <span>Vân tay / FaceID</span>
         </div>
+        <!-- MỚI: Nút gạt Toggle Switch hiển thị trạng thái ON/OFF -->
+        <div class="switch-toggle" id="bio-toggle-switch">
+            <span class="switch-handle"></span>
+        </div>
+    </button>
+    
+    <hr>
+    <button onclick="handleLogout()" class="dropdown-item text-danger">
+        <i class="fas fa-sign-out-alt"></i> Đăng xuất tài khoản
+    </button>
+</div>
 
         <main class="main-content">
             <div class="search-section">
