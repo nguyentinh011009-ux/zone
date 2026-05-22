@@ -740,33 +740,63 @@ async function saveReception() {
 }
 
 // --- 9. CHỈNH SỬA THÔNG TIN CHI TIẾT ---
+// Thay thế hoàn toàn hàm saveStudentProfile() cũ trong mobile_admin.js
 async function saveStudentProfile() {
+    // Đọc chính xác ID của học sinh đang chỉnh sửa
+    const sid = document.getElementById('edit-student-id').value;
+    if (!sid) {
+        alert("Không tìm thấy mã định danh học sinh!");
+        return;
+    }
+
     const studentCode = document.getElementById('edit-student-code').value.trim();
     const name = document.getElementById('edit-student-name').value.trim();
     const className = document.getElementById('edit-student-class').value.trim();
     const dob = document.getElementById('edit-student-dob').value;
     const gender = document.getElementById('edit-student-gender').value;
+    const phone = document.getElementById('edit-student-phone').value.trim();
     const parentPhone = document.getElementById('edit-student-parent-phone').value.trim();
-    const street = document.getElementById('edit-student-address').value.trim();
+    const street = document.getElementById('edit-student-street').value.trim();
+    const ward = document.getElementById('edit-student-ward').value.trim();
+    const city = document.getElementById('edit-student-city').value;
     const height = document.getElementById('edit-student-height').value.trim();
     const weight = document.getElementById('edit-student-weight').value.trim();
     const medicalNote = document.getElementById('edit-student-medical-note').value.trim();
 
-    if (!name || !className) return alert("Họ tên và Lớp không được để trống!");
+    if (!name || !className) {
+        alert("Họ tên và Lớp học sinh không được phép để trống!");
+        return;
+    }
 
     try {
         const payload = {
-            studentCode, name, class: className, dob, gender, parentPhone, street, height, weight, medicalNote,
+            studentCode, 
+            name, 
+            class: className, 
+            dob, 
+            gender, 
+            phone,
+            parentPhone, 
+            street, 
+            ward,
+            city,
+            height, 
+            weight, 
+            medicalNote,
             name_search: removeVietnameseTones(name)
         };
 
-        await db.collection('yt_students').doc(activeStudentData.id).update(payload);
-        alert("✅ Đã cập nhật thông tin học sinh!");
+        // Ghi dữ liệu cập nhật lên Firestore
+        await db.collection('yt_students').doc(sid).update(payload);
+        alert("✅ Đã cập nhật thông tin hồ sơ học sinh thành công!");
         
-        // Cập nhật lại trạng thái local
+        // Làm mới dữ liệu hiện hành trên RAM thiết bị
         activeStudentData = { ...activeStudentData, ...payload };
+        
+        // Gọi lại hàm để cập nhật hiển thị đồng bộ sang Tab 1 (Tóm tắt)
+        loadStudentToTask(sid);
     } catch (e) {
-        alert("Lỗi khi cập nhật thông tin: " + e.message);
+        alert("Lỗi khi thực hiện lưu hồ sơ: " + e.message);
     }
 }
 
