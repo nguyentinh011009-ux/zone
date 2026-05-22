@@ -935,63 +935,80 @@ function toggleBiometricsSetting() {
     toggleSettingsDropdown();
 }
 
-async function requestChangePasscode() {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-        alert("Vui lòng thực hiện đăng nhập để xác thực thông tin quản trị viên trước!");
-        return;
-    }
+// --- ĐỒNG BỘ LOGIC CÀI ĐẶT BẬT/TẮT SINH TRẮC HỌC ---
 
-    const email = user.email;
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Tạo mã OTP 6 chữ số ngẫu nhiên
-
-    try {
-        // 1. Lưu mã OTP tạm thời vào Firestore để đối chiếu, thời hạn hiệu lực là 5 phút
-        await db.collection('yt_temp_otp').doc(email).set({
-            otp: otp,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // 2. Kích hoạt tính năng gửi Email tự động thông qua Collection Mail (Firebase Trigger Email)
-        await db.collection('mail').add({
-            to: email,
-            message: {
-                subject: "[Y Tế Số VTS] Mã OTP xác nhận đổi mã PIN thiết bị",
-                text: `Mã OTP của bạn là: ${otp}. Mã này sẽ hết hiệu lực sau 5 phút. Vui lòng không chia sẻ mã này cho bất kỳ ai.`,
-                html: `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 500px;">
-                        <h2 style="color: #0062ff; text-align: center;">Y TẾ SỐ VTS</h2>
-                        <p>Chào bạn,</p>
-                        <p>Hệ thống nhận được yêu cầu đổi mã PIN thiết bị của bạn. Dưới đây là mã xác thực OTP của bạn:</p>
-                        <div style="text-align: center; margin: 25px 0;">
-                            <span style="font-size: 28px; font-weight: bold; letter-spacing: 5px; color: #0062ff; padding: 10px 20px; background: #f0fdf4; border: 1px dashed #10b981; border-radius: 8px;">${otp}</span>
-                        </div>
-                        <p style="color: #ef4444; font-size: 0.85rem;">*Mã xác thực này chỉ có hiệu lực trong vòng 5 phút.</p>
-                        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;">
-                        <p style="font-size: 0.8rem; color: #64748b; text-align: center;">Bản quyền hệ thống © THPT Võ Thị Sáu</p>
-                    </div>`
-            }
-        });
-
-        // 3. Hiển thị hộp thoại yêu cầu người dùng nhập OTP đã gửi
-        const userOTPInput = prompt("Hệ thống đã gửi một mã xác thực (OTP) tới Email quản trị của bạn. Vui lòng kiểm tra hộp thư (và thư rác) và nhập mã tại đây:");
-        
-        if (userOTPInput === otp) {
-            const newPin = prompt("Xác thực thành công! Nhập mã PIN mới (gồm 6 chữ số):");
-            if (newPin && newPin.length === 6 && !isNaN(newPin)) {
-                localStorage.setItem('vts_mobile_pin', newPin);
-                alert("Thay đổi mã PIN thiết bị thành công!");
-                toggleSettingsDropdown();
-            } else {
-                alert("Mã PIN không đúng quy cách (phải là 6 ký tự số)!");
-            }
+// 1. Hàm cập nhật trạng thái hiển thị nút gạt (On/Off) trên giao diện
+function updateSettingsUI() {
+    const isBioEnabled = localStorage.getItem('vts_mobile_biometric') === 'true';
+    const toggleSwitch = document.getElementById('bio-toggle-switch');
+    
+    if (toggleSwitch) {
+        if (isBioEnabled) {
+            toggleSwitch.classList.add('active'); // Gạt nút sang ON
         } else {
-            alert("Mã xác thực OTP nhập vào không chính xác!");
+            toggleSwitch.classList.remove('active'); // Gạt nút sang OFF
+        }
+    }
+}
+
+// 2. Đồng bộ trạng thái nút gạt khi người dùng bấm mở menu Settings
+function toggleSettingsDropdown() {
+    const dd = document.getElementById('settings-dropdown');
+    if (dd) {
+        const isOpen = dd.style.display === 'block';
+        dd.style.display = isOpen ? 'none' : 'block';
+        if (!isOpen) {
+            updateSettingsUI(); // Đọc dữ liệu cục bộ để hiển thị đúng trạng thái nút gạt
+        }
+    }
+}
+
+// 3. Xử lý bật/tắt thiết lập bảo mật sinh trắc học
+async function toggleBiometricsSetting() {
+    const isBioEnabled = localStorage.getItem('vts_mobile_biometric') === 'true';
+    
+    if (!isBioEnabled) {
+        // ĐANG TẮT -> TIẾN HÀNH BẬT: Đăng ký tạo khóa gốc
+        if (!window.PublicKeyCredential) {
+            alert("Thiết bị hoặc trình duyệt không hỗ trợ sinh trắc học chuẩn WebAuthn!");
+            return;
         }
 
-    } catch (e) {
-        alert("Lỗi không thể gửi mã xác nhận: " + e.message);
+        const options = {
+            publicKey: {
+                challenge: new Uint8Array([1, 9, 0, 9, 2, 0, 0, 5]),
+                rp: { name: "Hệ thống Y Tế Số VTS" },
+                user: { id: new Uint8Array([1]), name: "admin", displayName: "Admin VTS" },
+                pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+                authenticatorSelection: {
+                    authenticatorAttachment: "platform", // Kích hoạt phần cứng Vân tay/FaceID thiết bị
+                    userVerification: "required"
+                }
+            }
+        };
+
+        try {
+            const credential = await navigator.credentials.create(options);
+            if (credential) {
+                const rawId = new Uint8Array(credential.rawId);
+                const base64Id = btoa(String.fromCharCode.apply(null, rawId));
+                
+                localStorage.setItem('vts_biometric_cred_id', base64Id);
+                localStorage.setItem('vts_mobile_biometric', 'true');
+                alert("✅ Đã kích hoạt bảo mật Vân tay/FaceID thành công!");
+            }
+        } catch (err) {
+            console.error("Lỗi đăng ký sinh trắc học:", err);
+            localStorage.setItem('vts_mobile_biometric', 'false');
+            alert("Không thể thiết lập khóa truy cập sinh trắc học trên thiết bị.");
+        }
+    } else {
+        // ĐANG BẬT -> TIẾN HÀNH TẮT TÍNH NĂNG
+        localStorage.setItem('vts_mobile_biometric', 'false');
+        alert("Đã tắt tính năng đăng nhập sinh trắc học thành công!");
     }
+    
+    updateSettingsUI(); // Đồng bộ trạng thái gạt sau khi xử lý thành công
 }
 
 function handleLogout() {
