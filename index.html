@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUtech Sky Alliance - Rapid Check-in & Flight Management</title>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        .seat-f { background-color: #f59e0b; color: white; } /* First */
+        .seat-c { background-color: #8b5cf6; color: white; } /* Business */
+        .seat-w { background-color: #06b6d4; color: white; } /* Premium Eco */
+        .seat-y { background-color: #3b82f6; color: white; } /* Economy */
+        .seat-occupied { background-color: #ef4444 !important; cursor: not-allowed; }
+        .airplane-body {
+            border-radius: 120px 120px 40px 40px;
+            border: 4px solid #334155;
+            background: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg font-black text-xl tracking-wider text-white">
+                    FUtech <span class="text-sky-300">SKY</span>
+                </div>
+                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300 border border-slate-600">Alliance System</span>
+            </div>
+            
+            <nav class="flex space-x-2">
+                <button onclick="switchView('admin')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-700 hover:bg-slate-600 transition" id="nav-admin">
+                    <i class="fa-solid fa-user-shield mr-1"></i> Admin Portal
+                </button>
+                <button onclick="switchView('staff')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-500 transition" id="nav-staff">
+                    <i class="fa-solid fa-headset mr-1"></i> Staff Check-in
+                </button>
+                <button onclick="switchView('scanner')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 transition" id="nav-scanner">
+                    <i class="fa-solid fa-mobile-screen mr-1"></i> Phone Scanner
+                </button>
+            </nav>
+
+            <div id="user-info" class="text-sm text-slate-400 flex items-center gap-2">
+                <span id="user-email">Chưa đăng nhập</span>
+                <button id="btn-login" class="bg-indigo-600 px-3 py-1 rounded text-white text-xs hover:bg-indigo-500">Đăng nhập Firebase</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto p-4">
+
+        <!-- ==================== VIEW 1: ADMIN MODULE ==================== -->
+        <section id="view-admin" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- Stats Widgets -->
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <p class="text-slate-400 text-xs uppercase font-bold">Chuyến bay SGN-HAN Hôm nay</p>
+                    <h3 class="text-2xl font-bold text-sky-400 mt-1" id="stat-flights">18 Chuyến</h3>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <p class="text-slate-400 text-xs uppercase font-bold">Lượt Check-in Sát Giờ</p>
+                    <h3 class="text-2xl font-bold text-emerald-400 mt-1" id="stat-checkins">342 Khách</h3>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <p class="text-slate-400 text-xs uppercase font-bold">Tải Khai Thác FUtech Airways</p>
+                    <h3 class="text-2xl font-bold text-indigo-400 mt-1">92.4%</h3>
+                </div>
+                <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                    <p class="text-slate-400 text-xs uppercase font-bold">Tải Khai Thác pair</p>
+                    <h3 class="text-2xl font-bold text-pink-400 mt-1">88.7%</h3>
+                </div>
+            </div>
+
+            <!-- Tabs Admin -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 p-6">
+                <div class="flex border-b border-slate-700 mb-6 gap-4">
+                    <button onclick="switchAdminTab('flights')" class="pb-2 border-b-2 border-blue-500 font-bold text-blue-400" id="tab-btn-flights">1.1 Quản lý Chuyến Bay</button>
+                    <button onclick="switchAdminTab('configs')" class="pb-2 border-b-2 border-transparent font-bold text-slate-400 hover:text-white" id="tab-btn-configs">1.2 Cấu hình Tàu Bay & SeatMap</button>
+                </div>
+
+                <!-- Admin Tab 1: Flights -->
+                <div id="admin-tab-flights" class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-lg font-bold">Danh sách Chuyến bay Khai thác (SGN ⇌ HAN)</h2>
+                        <button onclick="openFlightModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                            <i class="fa-solid fa-plus mr-1"></i> Thêm Chuyến Bay Mới
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-700/50 uppercase text-xs text-slate-400">
+                                <tr>
+                                    <th class="p-3">Hãng</th>
+                                    <th class="p-3">Số Hiệu Đi/Về</th>
+                                    <th class="p-3">Giờ Cất/Hạ Cánh (Đi)</th>
+                                    <th class="p-3">Giờ Cất/Hạ Cánh (Về)</th>
+                                    <th class="p-3">Lịch Bay</th>
+                                    <th class="p-3">Cấu Hình Ghế</th>
+                                    <th class="p-3 text-right">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flight-table-body" class="divide-y divide-slate-700">
+                                <!-- Dynamic Rendered -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Admin Tab 2: Seat Config -->
+                <div id="admin-tab-configs" class="hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Form Cấu hình -->
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3">
+                            <h3 class="font-bold text-blue-400 border-b border-slate-700 pb-2">Tạo Cấu hình Ghế Tàu Bay</h3>
+                            <div>
+                                <label class="text-xs text-slate-400">Dòng Tàu Bay</label>
+                                <select id="cfg-aircraft" onchange="updateSeatLayoutInputs()" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                                    <option value="A20N">Airbus A320neo (Thân hẹp - 2 Dãy)</option>
+                                    <option value="A21N">Airbus A321neo (Thân hẹp - 2 Dãy)</option>
+                                    <option value="A339">Airbus A330-900neo (Thân rộng - 3 Dãy)</option>
+                                    <option value="A35K">Airbus A350-1000 (Thân rộng - 3 Dãy)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">Tên Tùy Chỉnh Cấu Hình</label>
+                                <input id="cfg-name" type="text" placeholder="VD: Premium High Density SGN-HAN" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-xs text-amber-400">Ghế First (F)</label>
+                                    <input id="cfg-f" type="number" value="0" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-purple-400">Ghế Business (C)</label>
+                                    <input id="cfg-c" type="number" value="12" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-cyan-400">Ghế Prem Eco (W)</label>
+                                    <input id="cfg-w" type="number" value="0" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-blue-400">Ghế Eco (Y)</label>
+                                    <input id="cfg-y" type="number" value="150" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">Cấu hình Hàng (VD: 2-2 cho C, 3-3 cho Y)</label>
+                                <input id="cfg-layout-str" type="text" value="2-2 | 3-3" class="w-full bg-slate-800 border border-slate-700 rounded p-2 text-sm">
+                            </div>
+                            <button onclick="saveSeatConfig()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold text-sm">
+                                <i class="fa-solid fa-save mr-1"></i> Lưu Sơ Đồ Cấu Hình
+                            </button>
+                        </div>
+
+                        <!-- Trực quan hóa sơ đồ máy bay -->
+                        <div class="lg:col-span-2 bg-slate-900 p-4 rounded-xl border border-slate-700 flex flex-col items-center">
+                            <h3 class="font-bold text-slate-300 mb-4">Sơ đồ Máy bay Trực quan (Minh họa)</h3>
+                            <div class="airplane-body w-full max-w-md p-6 bg-slate-800/80 flex flex-col items-center min-h-[400px] overflow-y-auto max-h-[500px]" id="seat-visualizer">
+                                <!-- Dynamic Seats Rendering -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 2: STAFF MODULE ==================== -->
+        <section id="view-staff" class="hidden space-y-6">
+            <!-- Staff Top Bar: Airline Switcher & Scanner Status -->
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center space-x-3">
+                    <span class="text-sm font-bold text-slate-400">Hãng Đang Phục Vụ:</span>
+                    <select id="staff-airline-filter" class="bg-slate-900 border border-slate-600 rounded px-3 py-1.5 text-sm font-bold text-sky-400">
+                        <option value="ALL">🌐 FUtech Sky Alliance (Cả 2 hãng)</option>
+                        <option value="FU">✈️ FUtech Airways (FU)</option>
+                        <option value="5G">⚡ pair (5G)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center space-x-3 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700">
+                    <div class="flex items-center gap-2">
+                        <span id="sync-status-dot" class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                        <span id="sync-status-text" class="text-xs text-slate-400 font-semibold">Chưa kết nối điện thoại</span>
+                    </div>
+                    <button onclick="generatePairingQR()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1 rounded">
+                        <i class="fa-solid fa-qrcode mr-1"></i> Kết nối Máy Quét Mobile
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rapid Check-in Workflow -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Step 1 & 2: Passenger Info & Ticket QR -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                        <h3 class="font-bold text-sky-400"><i class="fa-solid fa-passport mr-2"></i>1. Thông Tin Vé & Khách</h3>
+                        <button onclick="requestScan('TICKET')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1 rounded text-xs font-bold">
+                            <i class="fa-solid fa-camera mr-1"></i> Quét QR Vé Giấy
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400">Mã QR Vé (Ticket Code Target)</label>
+                        <input id="chk-ticket-qr" type="text" readonly placeholder="Quét QR trên vé để tự điền..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-emerald-400 font-mono font-bold">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-slate-400">Họ và Tên Hành Khách</label>
+                            <input id="chk-pax-name" type="text" placeholder="NGUYEN VAN A" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm uppercase">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">CCCD / Hộ Chiếu</label>
+                            <input id="chk-pax-id" type="text" placeholder="00109..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400">Chọn Chuyến Bay Chặng SGN ⇌ HAN Sát Giờ</label>
+                        <select id="chk-flight-select" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                            <!-- Dynamic Load -->
+                        </select>
+                    </div>
+
+                    <div class="p-3 bg-slate-900/50 rounded border border-slate-700/50 text-xs text-slate-400">
+                        <i class="fa-solid fa-circle-info text-sky-400 mr-1"></i> Giá vé & Chứng từ thu tiền được xuất tự động từ Hệ thống Doanh thu Trung tâm.
+                    </div>
+                </div>
+
+                <!-- Step 3: Baggage Processing -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                        <h3 class="font-bold text-amber-400"><i class="fa-solid fa-suitcase-rolling mr-2"></i>2. Quản Lý Hành Lý</h3>
+                        <button onclick="requestScan('BAGGAGE')" class="bg-amber-600 hover:bg-amber-500 px-3 py-1 rounded text-xs font-bold text-white">
+                            <i class="fa-solid fa-camera mr-1"></i> Quét Tag Hành Lý
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-400">Mã Tag Hành Lý Scanned</label>
+                        <input id="chk-bag-qr" type="text" readonly placeholder="Quét QR trên thẻ Tag..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-amber-400 font-mono font-bold">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-slate-400">Số Kiện Gửi</label>
+                            <input id="chk-bag-count" type="number" value="1" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-400">Tổng Cân Nặng (Kg)</label>
+                            <input id="chk-bag-weight" type="number" value="15.5" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Special Rule Notice for 'pair' Airline -->
+                    <div id="pair-baggage-alert" class="p-3 bg-pink-950/40 border border-pink-700/50 rounded-lg text-xs text-pink-300">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> <b>Quy định hãng pair (5G):</b> Bắt buộc quét & dán tag nhận diện cho cả <b>Hành Lý Xách Tay</b> sát giờ bay!
+                    </div>
+
+                    <button onclick="completeCheckin()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-3 rounded-lg font-bold text-white shadow-lg text-sm transition">
+                        <i class="fa-solid fa-check-circle mr-1"></i> HOÀN TẤT CHECK-IN & XUẤT VÉ
+                    </button>
+                </div>
+
+                <!-- Realtime Seat Picker -->
+                <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 flex flex-col items-center">
+                    <h3 class="font-bold text-slate-200 mb-2">Chọn Ghế Nhanh Trên Chuyến Bay</h3>
+                    <div id="seat-selection-grid" class="w-full grid grid-cols-6 gap-2 bg-slate-900 p-4 rounded-lg border border-slate-700 max-h-[350px] overflow-y-auto">
+                        <!-- Dynamic Seat Rendering -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== VIEW 3: PHONE REMOTE SCANNER MODULE ==================== -->
+        <section id="view-scanner" class="hidden flex flex-col items-center justify-center min-h-[70vh] space-y-6">
+            <!-- Pairing Form when disconnected -->
+            <div id="scanner-pairing-box" class="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-sm w-full text-center space-y-4">
+                <i class="fa-solid fa-qrcode text-5xl text-indigo-400"></i>
+                <h3 class="text-lg font-bold">Kết Nối Máy Quét Đi Dộng</h3>
+                <p class="text-xs text-slate-400">Nhập Mã Session ID từ Màn hình Staff để bắt đầu đồng bộ camera.</p>
+                <input id="scanner-session-input" type="text" placeholder="Nhập Session ID..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-center text-emerald-400 font-mono font-bold">
+                <button onclick="connectScannerSession()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-2 rounded font-bold text-sm">
+                    Xác Nhận Kết Nối
+                </button>
+            </div>
+
+            <!-- Idle Screen when connected (FUtech Sky Logo Only) -->
+            <div id="scanner-idle-box" class="hidden bg-slate-800/90 p-8 rounded-2xl border-2 border-sky-500/30 max-w-sm w-full text-center space-y-6 shadow-2xl">
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 rounded-xl font-black text-2xl tracking-wider text-white shadow">
+                    FUtech <span class="text-sky-300">SKY</span>
+                </div>
+                <div class="space-y-2">
+                    <div class="inline-block p-3 bg-emerald-500/10 rounded-full text-emerald-400">
+                        <i class="fa-solid fa-wifi text-2xl animate-pulse"></i>
+                    </div>
+                    <p class="text-sm font-semibold text-emerald-400">Đã Kết Nối Hệ Thống</p>
+                    <p class="text-xs text-slate-400">Màn hình chờ. Camera tự bật khi nhận lệnh từ Máy tính nhân viên.</p>
+                </div>
+                <!-- Hidden Camera View Container -->
+                <div id="reader" class="w-full rounded-lg overflow-hidden hidden border-2 border-emerald-500"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PAIRING MODAL FOR STAFF -->
+    <div id="modal-pairing" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50">
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 max-w-sm w-full text-center space-y-4">
+            <h3 class="font-bold text-lg">Mã Kết Nối Máy Quét</h3>
+            <p class="text-xs text-slate-400">Mở tab "Phone Scanner" trên điện thoại và quét mã bên dưới:</p>
+            <div id="pairing-qr-canvas" class="bg-white p-4 inline-block rounded-lg"></div>
+            <p class="text-xs font-mono text-emerald-400 font-bold" id="pairing-session-id-text"></p>
+            <button onclick="closePairingModal()" class="w-full bg-slate-700 py-2 rounded text-sm font-bold">Đóng</button>
+        </div>
+    </div>
+
+    <!-- FIREBASE SDK & APPLICATION SCRIPT -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, getDocs, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // 1. FIREBASE CONFIGURATION (Đúng theo mẫu của bạn)
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJwcAlXCU7oRdDrhIozL_lHJWM54sSKTo",
+            authDomain: "ftfuedu.firebaseapp.com",
+            projectId: "ftfuedu",
+            storageBucket: "ftfuedu.firebasestorage.app",
+            messagingSenderId: "836592822298",
+            appId: "1:836592822298:web:af96a04b93e3fba47a49a3",
+            measurementId: "G-YNVDTQXY76"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Application State
+        window.state = {
+            currentSessionId: null,
+            html5QrcodeScanner: null,
+            activeAirlineFilter: 'ALL',
+            flights: [
+                { id: '1', airline: 'FU', outbound: 'FU1588', inbound: 'FU1589', outDep: '06:00', outArr: '08:15', inDep: '09:00', inArr: '11:15', days: ['T2','T4','T6'], config: 'A321neo Default' },
+                { id: '2', airline: '5G', outbound: '5G202', inbound: '5G203', outDep: '14:30', outArr: '16:45', inDep: '17:30', inArr: '19:45', days: ['T3','T5','T7','CN'], config: 'A350 Density' }
+            ]
+        };
+
+        // UI Navigation Functions
+        window.switchView = function(view) {
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-staff').classList.add('hidden');
+            document.getElementById('view-scanner').classList.add('hidden');
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+        };
+
+        window.switchAdminTab = function(tab) {
+            if(tab === 'flights') {
+                document.getElementById('admin-tab-flights').classList.remove('hidden');
+                document.getElementById('admin-tab-configs').classList.add('hidden');
+            } else {
+                document.getElementById('admin-tab-flights').classList.add('hidden');
+                document.getElementById('admin-tab-configs').classList.remove('hidden');
+                renderSeatVisualizer();
+            }
+        };
+
+        // Render Flights Table
+        function renderFlights() {
+            const tbody = document.getElementById('flight-table-body');
+            tbody.innerHTML = window.state.flights.map(f => `
+                <tr class="hover:bg-slate-700/30">
+                    <td class="p-3 font-bold ${f.airline==='FU'?'text-indigo-400':'text-pink-400'}">${f.airline === 'FU' ? 'FUtech Airways' : 'pair'}</td>
+                    <td class="p-3 font-mono font-bold">${f.outbound} / ${f.inbound}</td>
+                    <td class="p-3 text-xs">${f.outDep} ➔ ${f.outArr}</td>
+                    <td class="p-3 text-xs">${f.inDep} ➔ ${f.inArr}</td>
+                    <td class="p-3"><span class="bg-slate-700 px-2 py-0.5 rounded text-xs">${f.days.join(', ')}</span></td>
+                    <td class="p-3 text-xs">${f.config}</td>
+                    <td class="p-3 text-right">
+                        <button class="text-blue-400 hover:text-blue-300 mr-2"><i class="fa-solid fa-pen"></i></button>
+                        <button class="text-red-400 hover:text-red-300"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Also populate staff dropdown
+            const staffSelect = document.getElementById('chk-flight-select');
+            staffSelect.innerHTML = window.state.flights.map(f => 
+                `<option value="${f.id}">[${f.airline}] ${f.outbound} (SGN-HAN ${f.outDep})</option>`
+            ).join('');
+        }
+
+        // Render Aircraft Seat Visualizer Diagram
+        window.renderSeatVisualizer = function() {
+            const container = document.getElementById('seat-visualizer');
+            const type = document.getElementById('cfg-aircraft').value;
+            const isWideBody = (type === 'A339' || type === 'A35K');
+            
+            let html = `<div class="text-xs font-bold text-slate-400 mb-4 uppercase">Buồng Lái (Cockpit)</div>`;
+            
+            // Generate Rows
+            for(let row = 1; row <= 12; row++) {
+                html += `<div class="flex items-center gap-2 mb-2">`;
+                html += `<span class="text-[10px] w-4 text-slate-500 font-mono">${row}</span>`;
+                
+                if(!isWideBody) { // 2 Columns (e.g. 3-3)
+                    html += `<div class="flex gap-1"><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">A</div><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">B</div><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">C</div></div>`;
+                    html += `<div class="w-4"></div>`; // Aisle
+                    html += `<div class="flex gap-1"><div class="w-6 h-6 rounded seat-y text-[10px] flex items-center justify-center font-bold">D</div><div class="w-6 h-6 rounded seat-y text-[10px] flex items-center justify-center font-bold">E</div><div class="w-6 h-6 rounded seat-y text-[10px] flex items-center justify-center font-bold">F</div></div>`;
+                } else { // 3 Columns (Thân rộng A350/A330 e.g. 2-4-2 or 3-3-3)
+                    html += `<div class="flex gap-1"><div class="w-6 h-6 rounded seat-f text-[10px] flex items-center justify-center font-bold">A</div><div class="w-6 h-6 rounded seat-f text-[10px] flex items-center justify-center font-bold">B</div></div>`;
+                    html += `<div class="w-3"></div>`; // Aisle 1
+                    html += `<div class="flex gap-1"><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">D</div><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">E</div><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">F</div><div class="w-6 h-6 rounded seat-c text-[10px] flex items-center justify-center font-bold">G</div></div>`;
+                    html += `<div class="w-3"></div>`; // Aisle 2
+                    html += `<div class="flex gap-1"><div class="w-6 h-6 rounded seat-f text-[10px] flex items-center justify-center font-bold">J</div><div class="w-6 h-6 rounded seat-f text-[10px] flex items-center justify-center font-bold">K</div></div>`;
+                }
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        };
+
+        window.updateSeatLayoutInputs = function() {
+            renderSeatVisualizer();
+        };
+
+        // PAIRING & SCANNER REALTIME SYNC VIA FIRESTORE
+        window.generatePairingQR = function() {
+            const sessionId = "SESS_" + Math.random().toString(36).substring(2, 9).toUpperCase();
+            window.state.currentSessionId = sessionId;
+            
+            document.getElementById('pairing-session-id-text').innerText = "SESSION ID: " + sessionId;
+            document.getElementById('modal-pairing').classList.remove('hidden');
+            document.getElementById('modal-pairing').classList.add('flex');
+
+            // Listen to Scanner Session Changes from Firebase
+            onSnapshot(doc(db, "sessions", sessionId), (snapshot) => {
+                const data = snapshot.data();
+                if(data) {
+                    if(data.connected) {
+                        document.getElementById('sync-status-dot').className = "w-3 h-3 bg-emerald-500 rounded-full";
+                        document.getElementById('sync-status-text').innerText = "Đã kết nối điện thoại";
+                        document.getElementById('sync-status-text').classList.replace('text-slate-400','text-emerald-400');
+                    }
+                    if(data.scannedResult) {
+                        if(data.targetInput === 'TICKET') {
+                            document.getElementById('chk-ticket-qr').value = data.scannedResult;
+                        } else if(data.targetInput === 'BAGGAGE') {
+                            document.getElementById('chk-bag-qr').value = data.scannedResult;
+                        }
+                    }
+                }
+            });
+
+            // Initialize Session Doc
+            setDoc(doc(db, "sessions", sessionId), {
+                connected: false,
+                triggerScan: false,
+                targetInput: null,
+                scannedResult: null
+            });
+        };
+
+        window.closePairingModal = function() {
+            document.getElementById('modal-pairing').classList.add('hidden');
+            document.getElementById('modal-pairing').classList.remove('flex');
+        };
+
+        window.requestScan = function(target) {
+            if(!window.state.currentSessionId) {
+                alert("Vui lòng kết nối máy quét Điện thoại trước!");
+                return;
+            }
+            updateDoc(doc(db, "sessions", window.state.currentSessionId), {
+                triggerScan: true,
+                targetInput: target,
+                scannedResult: null
+            });
+            alert(`Đã gửi lệnh bật Camera tới Điện thoại (Quét ${target})`);
+        };
+
+        // MOBILE SCANNER SIDE LOGIC
+        window.connectScannerSession = function() {
+            const sid = document.getElementById('scanner-session-input').value.trim();
+            if(!sid) return alert("Vui lòng nhập Session ID!");
+
+            window.state.currentSessionId = sid;
+            document.getElementById('scanner-pairing-box').classList.add('hidden');
+            document.getElementById('scanner-idle-box').classList.remove('hidden');
+
+            // Mark session connected in Firestore
+            updateDoc(doc(db, "sessions", sid), { connected: true });
+
+            // Listen for Remote Camera Bật/Tắt Command
+            onSnapshot(doc(db, "sessions", sid), (snapshot) => {
+                const data = snapshot.data();
+                if(data && data.triggerScan) {
+                    startMobileCamera(data.targetInput);
+                }
+            });
+        };
+
+        function startMobileCamera(targetInput) {
+            const readerDiv = document.getElementById('reader');
+            readerDiv.classList.remove('hidden');
+
+            const html5QrcodeScanner = new Html5Qrcode("reader");
+            window.state.html5QrcodeScanner = html5QrcodeScanner;
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                (decodedText) => {
+                    // Success Scanned
+                    updateDoc(doc(db, "sessions", window.state.currentSessionId), {
+                        triggerScan: false,
+                        scannedResult: decodedText
+                    });
+                    // Stop Camera
+                    html5QrcodeScanner.stop().then(() => {
+                        readerDiv.classList.add('hidden');
+                    });
+                },
+                (errorMessage) => { /* ignore frame errors */ }
+            );
+        }
+
+        // INIT SEAT PICKER GRID FOR CHECKIN
+        function initSeatSelectionGrid() {
+            const grid = document.getElementById('seat-selection-grid');
+            let seatsHtml = '';
+            for(let i = 1; i <= 36; i++) {
+                const isOccupied = Math.random() < 0.3;
+                seatsHtml += `
+                    <button onclick="selectSeat('${i}A')" ${isOccupied ? 'disabled' : ''} 
+                        class="p-2 text-xs font-bold rounded ${isOccupied ? 'seat-occupied' : 'bg-slate-700 hover:bg-emerald-600 text-white'}">
+                        ${i}A
+                    </button>
+                `;
+            }
+            grid.innerHTML = seatsHtml;
+        }
+
+        window.selectSeat = function(seatNo) {
+            alert(`Đã chọn ghế sát giờ: ${seatNo}`);
+        };
+
+        window.completeCheckin = function() {
+            const pax = document.getElementById('chk-pax-name').value;
+            const ticket = document.getElementById('chk-ticket-qr').value;
+            if(!pax || !ticket) {
+                alert("Vui lòng quét QR vé và nhập tên Hành khách!");
+                return;
+            }
+            alert(`✅ CHECK-IN THÀNH CÔNG!\nHành khách: ${pax}\nMã vé: ${ticket}\nThẻ lên tàu & Tag hành lý đã sẵn sàng.`);
+        };
+
+        // App Initializer
+        window.addEventListener('DOMContentLoaded', () => {
+            renderFlights();
+            renderSeatVisualizer();
+            initSeatSelectionGrid();
+        });
+    </script>
+</body>
+</html>
